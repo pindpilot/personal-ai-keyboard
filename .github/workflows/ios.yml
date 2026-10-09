@@ -1,0 +1,56 @@
+name: Build keyboard
+on:
+  workflow_dispatch:
+  push:
+    paths: ['Container/**', 'Keyboard/**', 'Shared/**', 'project.yml']
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate Xcode project
+        run: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build unsigned app and embedded keyboard
+        run: |
+          set -e
+          xcodebuild -project PersonalAIKeyboard.xcodeproj -scheme PersonalAIKeyboard -configuration Release \
+            -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' \
+            -derivedDataPath build/Device build
+          test -d build/Device/Build/Products/Release-iphoneos/PersonalAIKeyboard.app/PlugIns/AIKeyboardExtension.appex
+      - name: Simulator app smoke
+        run: |
+          set -e
+          DEVICE=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(x["udid"] for v in d["devices"].values() for x in v if x["name"].startswith("iPhone")))')
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          xcodebuild -project PersonalAIKeyboard.xcodeproj -scheme PersonalAIKeyboard -configuration Debug \
+            -destination "id=$DEVICE" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO -derivedDataPath build/Simulator build
+          xcrun simctl install "$DEVICE" build/Simulator/Build/Products/Debug-iphonesimulator/PersonalAIKeyboard.app
+          xcrun simctl launch "$DEVICE" app.pindpilot.aikeyboard
+          sleep 5
+          mkdir -p build/evidence
+          xcrun simctl io "$DEVICE" screenshot build/evidence/container.png
+          xcrun simctl terminate "$DEVICE" app.pindpilot.aikeyboard
+          xcrun simctl io "$DEVICE" recordVideo --codec=h264 build/evidence/keyboard-demo.mov &
+          RECORDER=$!
+          xcrun simctl launch "$DEVICE" app.pindpilot.aikeyboard -keyboard-demo
+          sleep 12
+          xcrun simctl io "$DEVICE" screenshot build/evidence/keyboard-demo.png
+          kill -INT "$RECORDER"
+          wait "$RECORDER" || true
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/Device/Build/Products/Release-iphoneos/PersonalAIKeyboard.app build/Payload/
+          cd build && zip -rq AIKeyboard-unsigned.ipa Payload
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AIKeyboard-unsigned
+          path: |
+            build/AIKeyboard-unsigned.ipa
+            build/evidence/
+          retention-days: 7
