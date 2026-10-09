@@ -26,7 +26,7 @@ final class KeyboardViewController: UIInputViewController {
             stack.topAnchor.constraint(equalTo: view.topAnchor, constant: 6),
             stack.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -6)
         ])
-        view.heightAnchor.constraint(equalToConstant: 380).isActive = true
+        view.heightAnchor.constraint(equalToConstant: 450).isActive = true
         question.isEditable = false; question.font = .preferredFont(forTextStyle: .body)
         question.backgroundColor = .secondarySystemBackground
         question.accessibilityLabel = "Question. Use selected text or Paste question to load it."
@@ -50,7 +50,18 @@ final class KeyboardViewController: UIInputViewController {
         copy.setTitle("Copy", for: .normal); copy.addTarget(self, action: #selector(copyAnswer), for: .touchUpInside)
         insert.isEnabled = false; copy.isEnabled = false
         let footer = row([insert, copy, button("Next keyboard", action: #selector(nextKeyboard))])
-        [sourceRow, question, requestRow, result, status, footer].forEach(stack.addArrangedSubview)
+        [sourceRow, question, requestRow, result, status].forEach(stack.addArrangedSubview)
+        for letters in ["qwertyuiop", "asdfghjkl", "zxcvbnm"] {
+            let keys = String(letters).map { char -> UIButton in
+                let key = UIButton(type: .system); key.setTitle(String(char), for: .normal)
+                key.addTarget(self, action: #selector(typeLetter(_:)), for: .touchUpInside)
+                key.titleLabel?.font = .systemFont(ofSize: 17)
+                return key
+            }
+            stack.addArrangedSubview(row(keys))
+        }
+        stack.addArrangedSubview(row([button("Space", action: #selector(typeSpace)), button("Delete", action: #selector(deleteLetter))]))
+        stack.addArrangedSubview(footer)
     }
     private func button(_ title: String, action: Selector) -> UIButton {
         let button = UIButton(type: .system); button.setTitle(title, for: .normal)
@@ -61,6 +72,12 @@ final class KeyboardViewController: UIInputViewController {
     private func row(_ views: [UIView]) -> UIStackView {
         let row = UIStackView(arrangedSubviews: views); row.spacing = 6; row.distribution = .fillEqually; return row
     }
+    @objc private func typeLetter(_ sender: UIButton) {
+        guard operation == nil else { return }
+        question.text += sender.currentTitle ?? ""
+    }
+    @objc private func typeSpace() { if operation == nil { question.text += " " } }
+    @objc private func deleteLetter() { if operation == nil && !question.text.isEmpty { question.text.removeLast() } }
     @objc private func loadSelected() {
         guard operation == nil else { return }
         question.text = textDocumentProxy.selectedText ?? ""
