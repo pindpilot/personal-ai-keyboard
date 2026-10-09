@@ -11,7 +11,7 @@ struct SetupView: View {
             Form {
                 Section("Personal AI Keyboard") {
                     Text("Ask from a text field, review the answer, then insert it. No messages are sent automatically.")
-                    Text("Setup is not connected to a live provider yet.").foregroundStyle(.orange)
+                    Text("Set keys in the keyboard Setup panel. Cloudflare AI and optional Tavily search are not device-tested yet.").foregroundStyle(.orange)
                 }
                 Section("Enable after signing") {
                     Text("1. Sign the app AND its embedded keyboard extension in ESign/Feather. Extension installation has not been tested on your phone.")
@@ -39,7 +39,7 @@ struct DemoView: View {
             Text("AI Keyboard - UI DEMO").font(.title2.bold())
             Text("Simulated host field · fixture answer, NOT live AI/search").font(.caption).foregroundStyle(.orange)
             Text(inserted).frame(maxWidth: .infinity, minHeight: 100).padding().background(Color.secondary.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
-            KeyboardPreview(inserted: $inserted).frame(height: 380)
+            KeyboardPreview(inserted: $inserted).frame(height: 450)
             Text("Preview uses the keyboard's actual UI/controller. System enablement, ESign signing and live services still need testing.").font(.caption).foregroundStyle(.secondary)
         }.padding()
     }
