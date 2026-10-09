@@ -126,20 +126,30 @@ final class KeyboardViewController: UIInputViewController {
     func runDemoAsk() { send() }
     func runDemoInsert() { insertAnswer() }
     @objc private func setup() {
-        let alert = UIAlertController(title: "Private key setup", message: "Only use Workers Free and Tavily Researcher with pay-as-you-go OFF. Keys stay in this extension's Keychain, not shared with the container app.", preferredStyle: .alert)
-        for label in ["Cloudflare account ID", "Workers AI token", "Tavily API key"] {
-            alert.addTextField { field in field.placeholder = label; field.isSecureTextEntry = label != "Cloudflare account ID"; field.autocorrectionType = .no; field.autocapitalizationType = .none }
-        }
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        alert.addAction(UIAlertAction(title: "Save: I verified free plans", style: .default) { [weak self] _ in
-            guard let fields = alert.textFields, fields.count == 3 else { return }
+        guard hasFullAccess || demoMode else { status.text = KeyboardFailure.noFullAccess.localizedDescription; return }
+        let alert = UIAlertController(title: "Private key setup", message: "Copy your own provider key, then choose its Paste button. Keys stay in this extension's device-only Keychain. The account ID below is the owner's existing Cloudflare account, not a secret.", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Paste Workers AI token", style: .default) { [weak self] _ in self?.saveClipboardKey("cloudflare") })
+        alert.addAction(UIAlertAction(title: "Paste Tavily key", style: .default) { [weak self] _ in self?.saveClipboardKey("tavily") })
+        alert.addAction(UIAlertAction(title: "I verified free plans, no PAYG", style: .default) { [weak self] _ in
             do {
-                for (index, name) in ["account", "cloudflare", "tavily"].enumerated() { try KeyStore.save(fields[index].text ?? "", name: name) }
+                try KeyStore.save("c202a03f4908a9daa343c1707c43f688", name: "account")
                 try KeyStore.save("yes", name: "free")
-                self?.status.text = "Saved privately. Only reviewed questions are sent."
-            } catch { self?.status.text = "Key storage failed. Nothing is configured." }
+                self?.status.text = "Free-plan gate confirmed. Add both private keys before asking."
+            } catch { self?.status.text = "Key storage failed." }
         })
+        alert.addAction(UIAlertAction(title: "Clear saved keys", style: .destructive) { [weak self] _ in
+            do { for name in ["account", "cloudflare", "tavily", "free"] { try KeyStore.save("", name: name) }; self?.status.text = "Configuration cleared." }
+            catch { self?.status.text = "Could not clear every key." }
+        })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         present(alert, animated: true)
+    }
+    private func saveClipboardKey(_ name: String) {
+        let value = (UIPasteboard.general.string ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, !value.contains("\n"), value.count < 1024,
+              name != "tavily" || value.hasPrefix("tvly-") else { status.text = "Clipboard does not look like that provider key. Copy it from its dashboard and retry."; return }
+        do { try KeyStore.save(value, name: name); UIPasteboard.general.string = ""; status.text = "Saved privately; clipboard cleared." }
+        catch { status.text = "Key storage failed." }
     }
     @objc private func nextKeyboard() { advanceToNextInputMode() }
     override func viewWillDisappear(_ animated: Bool) { super.viewWillDisappear(animated); cancel() }
