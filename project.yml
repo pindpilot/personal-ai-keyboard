@@ -38,9 +38,21 @@ targets:
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
         TARGETED_DEVICE_FAMILY: 1
+  ProviderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.pindpilot.aikeyboard.tests
+        GENERATE_INFOPLIST_FILE: YES
+    dependencies:
+      - target: PersonalAIKeyboard
 schemes:
   PersonalAIKeyboard:
     build:
       targets:
         PersonalAIKeyboard: all
         AIKeyboardExtension: all
+    test:
+      targets: [ProviderTests]
