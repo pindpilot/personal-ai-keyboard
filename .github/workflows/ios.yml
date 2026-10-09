@@ -29,6 +29,8 @@ jobs:
           xcrun simctl bootstatus "$DEVICE" -b
           xcodebuild -project PersonalAIKeyboard.xcodeproj -scheme PersonalAIKeyboard -configuration Debug \
             -destination "id=$DEVICE" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO -derivedDataPath build/Simulator build
+          xcodebuild -project PersonalAIKeyboard.xcodeproj -scheme PersonalAIKeyboard -configuration Debug \
+            -destination "id=$DEVICE" ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO -derivedDataPath build/Simulator test
           xcrun simctl install "$DEVICE" build/Simulator/Build/Products/Debug-iphonesimulator/PersonalAIKeyboard.app
           xcrun simctl launch "$DEVICE" app.pindpilot.aikeyboard
           sleep 5
