@@ -21,6 +21,15 @@ jobs:
             -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY='' \
             -derivedDataPath build/Device build
           test -d build/Device/Build/Products/Release-iphoneos/PersonalAIKeyboard.app/PlugIns/AIKeyboardExtension.appex
+          python3 - <<'PYCODE'
+          import plistlib
+          root='build/Device/Build/Products/Release-iphoneos/PersonalAIKeyboard.app/'
+          host=plistlib.load(open(root+'Info.plist','rb'))
+          ext=plistlib.load(open(root+'PlugIns/AIKeyboardExtension.appex/Info.plist','rb'))
+          assert 'NSExtension' not in host
+          assert ext['NSExtension']['NSExtensionPointIdentifier']=='com.apple.keyboard-service'
+          assert ext['CFBundleIdentifier'].startswith(host['CFBundleIdentifier']+'.')
+          PYCODE
       - name: Simulator app smoke
         run: |
           set -e
@@ -40,7 +49,7 @@ jobs:
           xcrun simctl io "$DEVICE" recordVideo --codec=h264 build/evidence/keyboard-demo.mov &
           RECORDER=$!
           xcrun simctl launch "$DEVICE" app.pindpilot.aikeyboard -keyboard-demo
-          sleep 12
+          sleep 18
           xcrun simctl io "$DEVICE" screenshot build/evidence/keyboard-demo.png
           kill -INT "$RECORDER"
           wait "$RECORDER" || true
