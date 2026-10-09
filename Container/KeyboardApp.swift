@@ -33,15 +33,19 @@ struct SetupView: View {
 }
 
 struct DemoView: View {
+    @State private var tick = 0
     @State private var inserted = "Answer inserts here after you review it."
     var body: some View {
         VStack(spacing: 12) {
             Text("AI Keyboard - UI DEMO").font(.title2.bold())
+            Text("Preview \(tick)s").font(.caption).foregroundStyle(.secondary)
             Text("Simulated host field · fixture answer, NOT live AI/search").font(.caption).foregroundStyle(.orange)
             Text(inserted).frame(maxWidth: .infinity, minHeight: 100).padding().background(Color.secondary.opacity(0.1)).clipShape(RoundedRectangle(cornerRadius: 12))
             KeyboardPreview(inserted: $inserted).frame(height: 450)
             Text("Preview uses the keyboard's actual UI/controller. System enablement, ESign signing and live services still need testing.").font(.caption).foregroundStyle(.secondary)
-        }.padding()
+        }.padding().task {
+            for value in 1...20 { try? await Task.sleep(for: .seconds(1)); tick = value }
+        }
     }
 }
 struct KeyboardPreview: UIViewControllerRepresentable {
